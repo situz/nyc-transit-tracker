@@ -4,6 +4,9 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class BusInfo {
     private String lineRef;
     private String destinationName;
@@ -95,6 +98,18 @@ public class BusInfo {
 
     public void setStopPointName(String stopPointName) {
         this.stopPointName = stopPointName;
+    }
+
+    public Long getMinutesUntilArrival() {
+        if (expectedArrivalIso == null || expectedArrivalIso.isEmpty()) {
+            return null;
+        }
+        try {
+            OffsetDateTime expected = OffsetDateTime.parse(expectedArrivalIso);
+            return Duration.between(OffsetDateTime.now(), expected).toMinutes();
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     @Override
