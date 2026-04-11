@@ -1,10 +1,13 @@
 # NYC Transit Tracker
 
-Small command-line program that queries the [MTA Bus Time](https://bustime.mta.info/) SIRI **stop-monitoring** API for a given bus stop ID and prints upcoming arrivals (route, destination, vehicle location, expected arrival, stops away).
+Queries the [MTA Bus Time](https://bustime.mta.info/) SIRI **stop-monitoring** API for a bus stop ID and shows upcoming arrivals (route, destination, vehicle location, expected arrival, stops away).
+
+- **CLI:** `App` reads a stop ID and prints to the terminal.
+- **Web API (Spring Boot):** `GET /api/stops/{stopId}/arrivals` returns the same data as JSON.
 
 ## Requirements
 
-- **Java 14+** (see `maven.compiler` in `pom.xml`)
+- **Java 14+** (see `java.version` in `pom.xml`)
 - **Maven 3.x**
 - An **MTA Bus Time API key** (obtain through MTA’s Bus Time / developer signup process)
 
@@ -52,11 +55,29 @@ Run tests only:
 mvn test
 ```
 
+### REST API (Spring Boot)
+
+Start the embedded server (default port **8080**):
+
+```bash
+mvn spring-boot:run
+```
+
+With a real MTA key configured (`MTA_API_KEY` or `config.properties`), fetch arrivals for a stop:
+
+```bash
+curl "http://localhost:8080/api/stops/404271/arrivals"
+```
+
+Stop the server with **Ctrl+C** in that terminal.
+
 ## Project layout
 
 | Piece | Role |
 |--------|------|
-| `App` | Reads stop ID from stdin, prints results |
+| `NycTransitApplication` | Spring Boot entry point |
+| `api.BusController` | REST: `/api/stops/{stopId}/arrivals` |
+| `App` | CLI: reads stop ID, prints results |
 | `BusService` | Orchestrates fetch + parse |
 | `MTAFetcher` | HTTP GET to the MTA JSON endpoint |
 | `BusInfoParser` | Jackson: JSON → `BusInfo` list |
@@ -65,5 +86,5 @@ mvn test
 ## Limitations
 
 - Uses a fixed path into the SIRI JSON (`StopMonitoringDelivery[0]`, etc.); unusual API responses may need parser tweaks.
-- Console app only; no map or mobile UI.
+- No web UI yet (React, etc.); API returns JSON only.
 

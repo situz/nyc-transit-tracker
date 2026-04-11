@@ -7,8 +7,8 @@ import java.util.Scanner;
 // Stop ID: first program argument (e.g. mvn exec:java -Dexec.args="404271") or typed at the prompt if no args.
 public class App {
     public static void main(String[] args) {
-        // Orchestrates HTTP fetch (MTAFetcher) and JSON parsing (BusInfoParser) into a list of BusInfo.
-        BusService service = new BusService();
+        // CLI does not use the Spring context; wire the same services manually.
+        BusService service = new BusService(new MTAFetcher());
 
         // 1) Decide where the stop ID comes from: command line (for scripts/IDE) or interactive prompt.
         final String stopId;

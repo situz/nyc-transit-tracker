@@ -8,6 +8,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Properties;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class MTAFetcher{
     private String apiKey;
 
