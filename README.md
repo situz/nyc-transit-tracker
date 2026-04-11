@@ -69,6 +69,10 @@ With a real MTA key configured (`MTA_API_KEY` or `config.properties`), fetch arr
 curl "http://localhost:8080/api/stops/404271/arrivals"
 ```
 
+- **200** with a JSON array: success. An **empty array `[]`** means no upcoming buses for that stop (not an error).
+- **502** if the MTA could not be reached or returned no usable body (`{"error":"..."}`).
+- **500** if the response could not be parsed (`{"error":"..."}`).
+
 Stop the server with **Ctrl+C** in that terminal.
 
 ## Project layout
@@ -78,7 +82,8 @@ Stop the server with **Ctrl+C** in that terminal.
 | `NycTransitApplication` | Spring Boot entry point |
 | `api.BusController` | REST: `/api/stops/{stopId}/arrivals` |
 | `App` | CLI: reads stop ID, prints results |
-| `BusService` | Orchestrates fetch + parse |
+| `BusService` | Orchestrates fetch + parse; returns `ArrivalsResult` |
+| `ArrivalsResult` | Success vs fetch/parse failure for API and CLI |
 | `MTAFetcher` | HTTP GET to the MTA JSON endpoint |
 | `BusInfoParser` | Jackson: JSON → `BusInfo` list |
 | `BusInfo` | One upcoming arrival at the stop |

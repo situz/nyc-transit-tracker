@@ -60,8 +60,8 @@ public class BusInfoParser {
             bus.setStopPointName(journey.path("MonitoredCall").path("StopPointName").asText());
             incomingBuses.add(bus);
         }
-        System.out.println(incomingBuses.size());
-        System.out.println(visits.size());
+        //System.out.println(incomingBuses.size());
+        //System.out.println(visits.size());
         return incomingBuses;
     }
 

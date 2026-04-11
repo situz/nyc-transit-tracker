@@ -1,6 +1,5 @@
 package com.example;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -16,21 +15,23 @@ public class BusService {
         this.fetcher = fetcher;
     }
 
-    public List<BusInfo> getIncomingBuses(String stopId){
+    /**
+     * Fetches and parses MTA stop-monitoring JSON. Distinguishes upstream/parse errors from an empty schedule.
+     */
+    public ArrivalsResult getArrivals(String stopId) {
         String json = fetcher.getBusTime(stopId);
-        if (json == null || json.isEmpty()){
-            System.err.println("No data received from API for stop " + stopId);
-            return Collections.emptyList();
+        if (json == null || json.isEmpty()) {
+            return ArrivalsResult.fetchFailed(
+                    "Could not fetch data from the MTA API for stop " + stopId + ".");
         }
         try {
             BusInfoParser parser = new BusInfoParser(json);
             JsonNode visits = parser.parseBusInfo();
             List<BusInfo> incomingBuses = parser.getStopVisits(visits);
-            return incomingBuses;
+            return ArrivalsResult.success(incomingBuses);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            return ArrivalsResult.parseFailed(
+                    "Could not parse API response: " + e.getClass().getSimpleName() + " — " + e.getMessage());
         }
-        //return null;
-        return Collections.emptyList();
     }
 }

@@ -23,19 +23,32 @@ public class App {
 
         if (stopId.isEmpty()) {
             System.err.println("Stop ID is empty.");
+            System.exit(1);
             return;
         }
 
-        // 2) One call: MTA JSON for this stop → list of upcoming buses (may be empty if none scheduled).
-        List<BusInfo> buses = service.getIncomingBuses(stopId);
+        // 2) One call: distinguish errors from an empty schedule.
+        ArrivalsResult result = service.getArrivals(stopId);
 
-        // 3) Print either a friendly empty message or each row (BusInfo#toString formats one arrival).
-        if (buses.isEmpty()) {
-            System.out.println("No upcoming buses found.");
-        } else {
-            for (BusInfo bus : buses) {
-                System.out.println(bus);
-            }
+        switch (result.getStatus()) {
+            case SUCCESS:
+                List<BusInfo> buses = result.getBuses();
+                if (buses.isEmpty()) {
+                    System.out.println("No upcoming buses found.");
+                } else {
+                    for (BusInfo bus : buses) {
+                        System.out.println(bus);
+                    }
+                }
+                break;
+            case FETCH_FAILED:
+            case PARSE_FAILED:
+                System.err.println(result.getMessage());
+                System.exit(1);
+                break;
+            default:
+                System.err.println("Unexpected result status.");
+                System.exit(1);
         }
     }
 }
