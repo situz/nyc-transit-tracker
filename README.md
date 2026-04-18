@@ -104,12 +104,39 @@ curl "http://localhost:8080/api/stops/404271/arrivals"
 
 Stop the server with **Ctrl+C** in that terminal.
 
+### Favorite stops (`/api/favorite-stops`)
+
+Persisted in PostgreSQL (same datasource as above). After listing or adding favorites, clients still call **`GET /api/stops/{stopId}/arrivals`** for live arrival data.
+
+| Method | Path | Body | Success |
+|--------|------|------|---------|
+| **GET** | `/api/favorite-stops` | — | **200** — JSON array of `{ "stopId", "stopName" }` (may be `[]`) |
+| **POST** | `/api/favorite-stops` | JSON object, e.g. `{ "stopId": "404271", "stopName": "My stop" }` (`stopName` optional) | **200** — saved favorite as JSON; **400** if `stopId` is missing or blank (`{"error":"..."}`) |
+| **DELETE** | `/api/favorite-stops/{stopId}` | — | **204** — no body (including when the id was not stored; idempotent delete) |
+
+Examples:
+
+```bash
+curl "http://localhost:8080/api/favorite-stops"
+curl -X POST "http://localhost:8080/api/favorite-stops" \
+  -H "Content-Type: application/json" \
+  -d "{\"stopId\":\"404271\",\"stopName\":\"Example\"}"
+curl -X DELETE "http://localhost:8080/api/favorite-stops/404271"
+```
+
+### Local PostgreSQL with Docker Compose
+
+If you use the included [`docker-compose.yml`](docker-compose.yml), Postgres listens on **localhost:5432**. Credentials are provided via environment variables (or a local `.env` file). You can start from [`.env.example`](.env.example) (copy to `.env`, which is gitignored). Start Postgres with `docker compose up -d` (or `docker-compose up -d`) before `mvn spring-boot:run`.
+
 ## Project layout
 
 | Piece | Role |
 |--------|------|
 | `NycTransitApplication` | Spring Boot entry point |
-| `api.BusController` | REST: `/api/stops/{stopId}/arrivals` |
+| `com.example.controller.BusController` | REST: `/api/stops/{stopId}/arrivals` |
+| `com.example.controller.FavoriteStopController` | REST: `/api/favorite-stops` (list, add, delete) |
+| `com.example.entity.FavoriteStop` | JPA entity for a saved stop |
+| `com.example.repository.FavoriteStopRepository` | Spring Data JPA for favorites |
 | `App` | CLI: reads stop ID, prints results |
 | `BusService` | Orchestrates fetch + parse; returns `ArrivalsResult` |
 | `ArrivalsResult` | Success vs fetch/parse failure for API and CLI |

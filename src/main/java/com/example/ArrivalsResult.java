@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 
 // Value object: one immutable snapshot of an arrivals request — success (maybe empty list) or a failure reason.
-// final class so nobody subclasses it and breaks the intended invariants.
 public final class ArrivalsResult {
 
     public enum Status {

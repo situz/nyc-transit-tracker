@@ -1,4 +1,4 @@
-package com.example.api;
+package com.example.controller;
 
 import java.util.Map;
 
@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ArrivalsResult;
 import com.example.BusService;
+import org.springframework.beans.factory.annotation.Autowired;
+
 
 @RestController
 @RequestMapping("/api")
@@ -18,7 +20,7 @@ public class BusController {
 
     // final + constructor injection: Spring supplies one BusService; the reference never changes after construction.
     private final BusService busService;
-
+    @Autowired
     public BusController(BusService busService) {
         this.busService = busService;
     }
