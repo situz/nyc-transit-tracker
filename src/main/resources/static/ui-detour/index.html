@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>NYC Transit Tracker - UI Detour</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 900px; margin: 24px auto; }
+      .row { display: flex; gap: 8px; margin-bottom: 12px; }
+      input { padding: 8px; }
+      button { padding: 8px 12px; cursor: pointer; }
+      pre { background: #f4f4f4; padding: 12px; overflow: auto; }
+      ul { padding-left: 18px; }
+      li { margin: 6px 0; }
+      .error { color: darkred; }
+    </style>
+  </head>
+
+  <body>
+    <h1>Favorites</h1>
+
+    <div class="row">
+      <input id="stopId" placeholder="Stop ID (e.g. 404271)" />
+      <input id="stopName" placeholder="Stop name (optional)" />
+      <button id="addBtn">Add favorite</button>
+      <button id="refreshBtn">Refresh list</button>
+    </div>
+
+    <div id="msg" class="error"></div>
+
+    <ul id="favoritesList"></ul>
+
+    <h2>Arrivals</h2>
+    <pre id="arrivals">Click a favorite stopId above.</pre>
+
+    <script>
+      const favoritesListEl = document.getElementById("favoritesList");
+      const arrivalsEl = document.getElementById("arrivals");
+      const msgEl = document.getElementById("msg");
+
+      async function loadFavorites() {
+        msgEl.textContent = "";
+        favoritesListEl.innerHTML = "<li>Loading...</li>";
+
+        const res = await fetch("http://localhost:8080/api/favorite-stops");
+        const data = await res.json();
+
+        favoritesListEl.innerHTML = "";
+        for (const fav of data) {
+          const li = document.createElement("li");
+          const label = fav.stopName ? `${fav.stopId} — ${fav.stopName}` : fav.stopId;
+
+          const btn = document.createElement("button");
+          btn.textContent = label;
+          btn.onclick = () => loadArrivals(fav.stopId);
+
+          li.appendChild(btn);
+          favoritesListEl.appendChild(li);
+        }
+
+        if (data.length === 0) {
+          favoritesListEl.innerHTML = "<li>(No favorites yet)</li>";
+        }
+      }
+
+      async function loadArrivals(stopId) {
+        msgEl.textContent = "";
+        arrivalsEl.textContent = "Loading arrivals...";
+
+        const res = await fetch(`http://localhost:8080/api/stops/${encodeURIComponent(stopId)}/arrivals`);
+        const text = await res.text(); // keep raw to see errors too
+        arrivalsEl.textContent = text;
+      }
+
+      async function addFavorite() {
+        msgEl.textContent = "";
+
+        const stopId = document.getElementById("stopId").value;
+        const stopName = document.getElementById("stopName").value;
+
+        const body = { stopId, stopName };
+
+        const res = await fetch("http://localhost:8080/api/favorite-stops", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          // Your API returns {"error":"..."} for 400.
+          const errText = await res.text();
+          msgEl.textContent = `POST failed (${res.status}): ${errText}`;
+          return;
+        }
+
+        await loadFavorites();
+      }
+
+      document.getElementById("refreshBtn").onclick = loadFavorites;
+      document.getElementById("addBtn").onclick = addFavorite;
+
+      // Load favorites on page load
+      loadFavorites();
+    </script>
+  </body>
+</html>
