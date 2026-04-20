@@ -92,6 +92,38 @@ Start the embedded server (default port **8080**):
 mvn spring-boot:run
 ```
 
+### Two-terminal workflow (Spring Boot API + React UI)
+
+This repo can be run with **two terminals** during development:
+
+- **Terminal A (backend: API on `http://localhost:8080`)**
+  1. Start Postgres (if using Docker Compose):
+
+     ```bash
+     docker compose up -d
+     ```
+
+  2. Set your MTA key (or use `src/main/resources/config.properties`):
+
+     - **Windows (PowerShell):** `$env:MTA_API_KEY = "your-key-here"`
+     - **Git Bash:** `export MTA_API_KEY='your-key-here'`
+
+  3. Start Spring Boot:
+
+     ```bash
+     mvn spring-boot:run
+     ```
+
+- **Terminal B (frontend: React dev server on `http://localhost:5173`)**
+
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
+
+Then open `http://localhost:5173/` in your browser.
+
 With a real MTA key configured (`MTA_API_KEY` or `config.properties`), fetch arrivals for a stop:
 
 ```bash
@@ -147,5 +179,5 @@ If you use the included [`docker-compose.yml`](docker-compose.yml), Postgres lis
 ## Limitations
 
 - Uses a fixed path into the SIRI JSON (`StopMonitoringDelivery[0]`, etc.); unusual API responses may need parser tweaks.
-- No web UI yet (React, etc.); API returns JSON only.
+- The primary interface is still the JSON API. A learning UI exists at `src/main/resources/static/ui-detour/`, and a React dev UI scaffold lives in `frontend/` (work in progress).
 
