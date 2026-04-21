@@ -10,6 +10,10 @@ function App() {
   const [error, setError] = useState("");
 
   const [selectedStopId, setSelectedStopId] = useState(null);
+
+  const [arrivals, setArrivals] = useState([]);
+  const [arrivalsLoading, setArrivalsLoading] = useState(false);
+  const [arrivalsError, setArrivalsError] = useState("");
   useEffect(() => {
     async function loadFavorites() {
       try {
@@ -30,6 +34,42 @@ function App() {
     }
     loadFavorites();
   }, []);
+  useEffect(() => {
+    // If nothing is selected, clear arrivals and do nothing.
+    if (!selectedStopId) {
+      setArrivals([]);
+      setArrivalsError("");
+      setArrivalsLoading(false);
+      return;
+    }
+  
+    async function loadArrivals() {
+      try {
+        setArrivalsError("");
+        setArrivalsLoading(true);
+  
+        // Clear old arrivals so you don't see stale data while loading.
+        setArrivals([]);
+  
+        const res = await fetch(`http://localhost:8080/api/stops/${encodeURIComponent(selectedStopId)}/arrivals`);
+  
+        // If it's not 200, the backend returns { "error": "..." }.
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`GET arrivals failed (${res.status}): ${text}`);
+        }
+  
+        const data = await res.json(); // expected: array of BusInfo
+        setArrivals(data);
+      } catch (e) {
+        setArrivalsError(e.message);
+      } finally {
+        setArrivalsLoading(false);
+      }
+    }
+  
+    loadArrivals();
+  }, [selectedStopId]);
   return (
     <main style={{ maxWidth: 800, margin: "24px auto", fontFamily: "Arial, sans-serif" }}>
       <h1>Favorite Stops</h1>
@@ -72,6 +112,21 @@ function App() {
         })}
       </ul>
       )}
+
+      <h2>Arrivals</h2>
+
+      {!selectedStopId && <p>Click a favorite to load arrivals.</p>}
+
+      {arrivalsLoading && <p>Loading arrivals…</p>}
+
+      {arrivalsError && <p style={{ color: "darkred" }}>{arrivalsError}</p>}
+
+      {!arrivalsLoading && !arrivalsError && selectedStopId && (
+        <pre style={{ background: "#f4f4f4", padding: 12, overflow: "auto" }}>
+          {JSON.stringify(arrivals, null, 2)}
+        </pre>
+      )}
+
     </main>
   );
 }
