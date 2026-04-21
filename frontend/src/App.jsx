@@ -8,12 +8,13 @@ function App() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [selectedStopId, setSelectedStopId] = useState(null);
   useEffect(() => {
     async function loadFavorites() {
       try {
         setError("");
         setLoading(true);
-        // NOTE: this will likely CORS-fail until you enable CORS or a dev proxy
         const res = await fetch("http://localhost:8080/api/favorite-stops");
         if (!res.ok) {
           const text = await res.text();
@@ -32,24 +33,44 @@ function App() {
   return (
     <main style={{ maxWidth: 800, margin: "24px auto", fontFamily: "Arial, sans-serif" }}>
       <h1>Favorite Stops</h1>
+
+      <p>
+        <strong>Selected stop:</strong> {selectedStopId ? selectedStopId : "(none)"}
+      </p>
       {loading && <p>Loading…</p>}
       {error && (
         <p style={{ color: "darkred" }}>
           {error}
-          <br />
-          If you see a CORS error in the console, that’s expected until we enable CORS/proxy.
         </p>
       )}
       {!loading && !error && favorites.length === 0 && <p>(No favorites yet)</p>}
       {!loading && !error && favorites.length > 0 && (
-        <ul>
-          {favorites.map((f) => (
-            <li key={f.stopId}>
-              {f.stopId}
-              {f.stopName ? ` — ${f.stopName}` : ""}
+        <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+        {favorites.map((f) => {
+          const label = f.stopName ? `${f.stopId} — ${f.stopName}` : f.stopId;
+          const isSelected = selectedStopId === f.stopId;
+          return (
+            <li key={f.stopId} style={{ marginBottom: 8 }}>
+              <button
+                onClick={() => setSelectedStopId(f.stopId)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  background: isSelected ? "white" : "black",
+                  color : isSelected ? "black" : "white",
+                  cursor: "pointer",
+                  fontWeight: isSelected ? "bold" : "normal",
+                }}
+              >
+                {label}
+              </button>
             </li>
-          ))}
-        </ul>
+          );
+        })}
+      </ul>
       )}
     </main>
   );
