@@ -11,26 +11,76 @@ function App() {
   const [arrivals, setArrivals] = useState([]);
   const [arrivalsLoading, setArrivalsLoading] = useState(false);
   const [arrivalsError, setArrivalsError] = useState("");
-  useEffect(() => {
-    async function loadFavorites() {
-      try {
-        setError("");
-        setLoading(true);
-        const res = await fetch("http://localhost:8080/api/favorite-stops");
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`GET favorites failed (${res.status}): ${text}`);
-        }
-        const data = await res.json();
-        setFavorites(data);
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
+
+  const [newStopId, setNewStopId] = useState("");
+  const [newStopName, setNewStopName] = useState("");
+  const [addError, setAddError] = useState("");
+
+  async function loadFavorites() {
+    try {
+      setError("");
+      setLoading(true);
+      const res = await fetch("http://localhost:8080/api/favorite-stops");
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GET favorites failed (${res.status}): ${text}`);
       }
+      const data = await res.json();
+      setFavorites(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  async function handleAddFavorite(e) {
+    e.preventDefault(); // don't reload the page
+  
+    setAddError("");
+  
+    const stopId = newStopId.trim();
+    const stopName = newStopName.trim();
+  
+    try {
+      const res = await fetch("http://localhost:8080/api/favorite-stops", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stopId,
+          // If you want to omit empty stopName, you can do:
+          stopId,
+          stopName: stopName || undefined
+        }),
+      });
+  
+      // 400: { "error": "..." }
+      if (res.status === 400) {
+        const body = await res.json();
+        setAddError(body.error ?? "Bad request");
+        return;
+      }
+  
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`POST failed (${res.status}): ${text}`);
+      }
+  
+      // Success: optional—use returned JSON, but simplest is to refetch:
+      await loadFavorites();
+  
+      // Clear the form
+      setNewStopId("");
+      setNewStopName("");
+    } catch (e) {
+      setAddError(e.message);
+    }
+  }
+
+  useEffect(() => {    
     loadFavorites();
   }, []);
+
   useEffect(() => {
     // If nothing is selected, clear arrivals and do nothing.
     if (!selectedStopId) {
@@ -67,9 +117,25 @@ function App() {
   
     loadArrivals();
   }, [selectedStopId]);
+
   return (
     <main style={{ maxWidth: 800, margin: "24px auto", fontFamily: "Arial, sans-serif" }}>
       <h1>Favorite Stops</h1>
+      <form onSubmit={handleAddFavorite} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, justifyContent: "center", alignItems: "center" }}>
+      <input
+        value={newStopId}
+        onChange={(e) => setNewStopId(e.target.value)}
+        placeholder="Stop ID"
+      />
+      <input
+        value={newStopName}
+        onChange={(e) => setNewStopName(e.target.value)}
+        placeholder="Stop name (optional)"
+      />
+      <button type="submit">Add favorite</button>
+      </form>
+
+      {addError && <p style={{ color: "darkred" }}>{addError}</p>}
 
       <p>
         <strong>Selected stop:</strong> {selectedStopId ? selectedStopId : "(none)"}
@@ -136,7 +202,7 @@ function App() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
               <div>
-                <div style={{ fontWeight: "bold", fontSize: 16 }}>
+                <div style={{ fontWeight: "bold", fontSize: 16, color: "black" }}>
                   Route: {a.lineRef ?? "(unknown)"}
                 </div>
                 <div>Destination: {a.destinationName ?? "(unknown)"}</div>
@@ -146,7 +212,7 @@ function App() {
                 <div style={{ fontWeight: "bold" }}>
                   {Number.isFinite(a.numStopsAway) ? `${a.numStopsAway} stops away` : ""}
                 </div>
-                <div style={{ fontFamily: "monospace" }}>
+                <div style={{ fontFamily: "monospace", color: "black" }}>
                   {`${a.minutesUntilArrival} minutes until arrival` ?? "(no arrival time)"}
                 </div>
               </div>
