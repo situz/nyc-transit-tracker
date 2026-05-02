@@ -1,7 +1,4 @@
 import { useEffect, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
@@ -121,10 +118,42 @@ function App() {
 
       {arrivalsError && <p style={{ color: "darkred" }}>{arrivalsError}</p>}
 
-      {!arrivalsLoading && !arrivalsError && selectedStopId && (
-        <pre style={{ background: "#f4f4f4", padding: 12, overflow: "auto" }}>
-          {JSON.stringify(arrivals, null, 2)}
-        </pre>
+      {!arrivalsLoading && !arrivalsError && selectedStopId && arrivals.length === 0 && (
+        <p>(No upcoming buses found)</p>
+      )}
+      {!arrivalsLoading && !arrivalsError && selectedStopId && arrivals.length > 0 && (
+        <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+        {arrivals.map((a, idx) => (
+          <li
+            key={`${a.vehicleRef ?? "bus"}-${a.expectedArrivalIso ?? "time"}-${idx}`}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              padding: 12,
+              marginBottom: 10,
+              background: "white",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: "bold", fontSize: 16 }}>
+                  Route: {a.lineRef ?? "(unknown)"}
+                </div>
+                <div>Destination: {a.destinationName ?? "(unknown)"}</div>
+                {a.stopPointName && <div style={{ color: "#555" }}>Stop: {a.stopPointName}</div>}
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontWeight: "bold" }}>
+                  {Number.isFinite(a.numStopsAway) ? `${a.numStopsAway} stops away` : ""}
+                </div>
+                <div style={{ fontFamily: "monospace" }}>
+                  {`${a.minutesUntilArrival} minutes until arrival` ?? "(no arrival time)"}
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
       )}
 
     </main>
