@@ -15,7 +15,8 @@ function App() {
   const [newStopId, setNewStopId] = useState("");
   const [newStopName, setNewStopName] = useState("");
   const [addError, setAddError] = useState("");
-
+  const [deleteError, setDeleteError] = useState("");
+  
   async function loadFavorites() {
     try {
       setError("");
@@ -48,8 +49,6 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stopId,
-          // If you want to omit empty stopName, you can do:
-          stopId,
           stopName: stopName || undefined
         }),
       });
@@ -74,6 +73,29 @@ function App() {
       setNewStopName("");
     } catch (e) {
       setAddError(e.message);
+    }
+  }
+
+  async function handleDeleteFavorite(stopId) {
+    setDeleteError("");
+    try {
+      const res = await fetch(`http://localhost:8080/api/favorite-stops/${encodeURIComponent(stopId)}`,
+      { method: "DELETE" }  
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`DELETE failed (${res.status}): ${text}`);
+    }
+    // If the deleted stop was selected, clear the selected stop and arrivals UI state.
+    if (selectedStopId === stopId) {
+      setSelectedStopId(null);
+      setArrivals([]);
+      setArrivalsError("");
+      setArrivalsLoading(false);
+    }
+    await loadFavorites();
+    } catch (e) {
+      setDeleteError(e.message);
     }
   }
 
@@ -154,22 +176,38 @@ function App() {
           const isSelected = selectedStopId === f.stopId;
           return (
             <li key={f.stopId} style={{ marginBottom: 8 }}>
-              <button
-                onClick={() => setSelectedStopId(f.stopId)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: "1px solid #ccc",
-                  background: isSelected ? "white" : "black",
-                  color : isSelected ? "black" : "white",
-                  cursor: "pointer",
-                  fontWeight: isSelected ? "bold" : "normal",
-                }}
-              >
-                {label}
-              </button>
+              <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
+                <button
+                  onClick={() => setSelectedStopId(f.stopId)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #ccc",
+                    background: isSelected ? "white" : "black",
+                    color : isSelected ? "black" : "white",
+                    cursor: "pointer",
+                    fontWeight: isSelected ? "bold" : "normal",
+                  }}
+                >
+                  {label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFavorite(f.stopId)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #ccc",
+                    background: "white",
+                    color: "black",
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </li>
           );
         })}
