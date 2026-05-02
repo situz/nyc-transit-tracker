@@ -77,6 +77,7 @@ function App() {
   }
 
   async function handleDeleteFavorite(stopId) {
+    if (!window.confirm(`Delete favorite stop ${stopId}?`)) return;
     setDeleteError("");
     try {
       const res = await fetch(`http://localhost:8080/api/favorite-stops/${encodeURIComponent(stopId)}`,
@@ -142,7 +143,7 @@ function App() {
 
   return (
     <main style={{ maxWidth: 800, margin: "24px auto", fontFamily: "Arial, sans-serif" }}>
-      <h1>Favorite Stops</h1>
+      <h1>Favorite Bus Stops</h1>
       <form onSubmit={handleAddFavorite} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, justifyContent: "center", alignItems: "center" }}>
       <input
         value={newStopId}
@@ -178,9 +179,10 @@ function App() {
             <li key={f.stopId} style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
                 <button
+                  type="button"
                   onClick={() => setSelectedStopId(f.stopId)}
                   style={{
-                    width: "100%",
+                    flex: 1,
                     textAlign: "left",
                     padding: "10px 12px",
                     borderRadius: 8,
@@ -213,6 +215,8 @@ function App() {
         })}
       </ul>
       )}
+
+      {deleteError && <p style={{ color: "darkred" }}>{deleteError}</p>}
 
       <h2>Arrivals</h2>
 
