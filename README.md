@@ -11,6 +11,7 @@ Queries the [MTA Bus Time](https://bustime.mta.info/) SIRI **stop-monitoring** A
 - **Maven 3.x**
 - An **MTA Bus Time API key** (obtain through MTA’s Bus Time / developer signup process)
 - **PostgreSQL** reachable at the URL you configure (defaults in `application.properties` assume `localhost:5432` and database `nyc_transit`) — only needed for **`mvn spring-boot:run`**, not for `mvn test`
+- **Node.js LTS + npm** — only if you work on the React app under [`frontend/`](frontend/)
 
 ## Configuration
 
@@ -124,6 +125,20 @@ This repo can be run with **two terminals** during development:
 
 Then open `http://localhost:5173/` in your browser.
 
+The React dev server runs on a **different port** than Spring Boot. [`com.example.config.CorsConfig`](src/main/java/com/example/config/CorsConfig.java) allows browser requests from **`http://localhost:5173`** to **`/api/**`** during development.
+
+**First-time setup:** run `npm install` once in `frontend/` (after cloning). You do **not** commit `frontend/node_modules/` (see [`.gitignore`](.gitignore)).
+
+#### Frontend production build
+
+From `frontend/`:
+
+```bash
+npm run build
+```
+
+This writes optimized static files to **`frontend/dist/`** (also gitignored). That folder is what you would deploy to static hosting, or copy into Spring Boot’s `src/main/resources/static/` if you want the UI served from the same server as the API.
+
 With a real MTA key configured (`MTA_API_KEY` or `config.properties`), fetch arrivals for a stop:
 
 ```bash
@@ -175,9 +190,10 @@ If you use the included [`docker-compose.yml`](docker-compose.yml), Postgres lis
 | `MTAFetcher` | HTTP GET to the MTA JSON endpoint |
 | `BusInfoParser` | Jackson: JSON → `BusInfo` list |
 | `BusInfo` | One upcoming arrival at the stop |
+| `frontend/` | React (Vite) UI — dev server (`npm run dev`), build output in `frontend/dist/` |
 
 ## Limitations
 
 - Uses a fixed path into the SIRI JSON (`StopMonitoringDelivery[0]`, etc.); unusual API responses may need parser tweaks.
-- The primary interface is still the JSON API. A learning UI exists at `src/main/resources/static/ui-detour/`, and a React dev UI scaffold lives in `frontend/` (work in progress).
+- The JSON API is the contract for integrations. A small learning page lives at `src/main/resources/static/ui-detour/`. The main browser UI is the React app in `frontend/` (run via `npm run dev`; production build via `npm run build`).
 
