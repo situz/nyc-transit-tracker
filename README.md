@@ -85,6 +85,18 @@ Run tests only:
 mvn test
 ```
 
+### Continuous integration (GitHub Actions)
+
+This repository includes a **CI workflow** that runs on every **push** and **pull request** to `main` or `master`. It checks out the code on a clean **Ubuntu** virtual machine, installs **Java** and **Maven** (with dependency caching), and runs:
+
+```bash
+mvn -B test
+```
+
+If tests fail, the workflow fails and GitHub shows a red **X** on the commit or PR. You do not need to install anything on GitHub’s side beyond pushing this file: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). **No MTA API key** is required for `mvn test` (tests use H2, not PostgreSQL).
+
+Locally, `mvn test` pins the test datasource via Surefire in [`pom.xml`](pom.xml) so **your** `SPRING_DATASOURCE_*` shell variables (used for real Postgres during dev) do not override in-memory H2 for tests.
+
 ### REST API (Spring Boot)
 
 Start the embedded server (default port **8080**):
