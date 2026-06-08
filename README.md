@@ -297,6 +297,20 @@ docker run --rm -p 8080:8080 \
 
 Then test: `curl http://localhost:8080/api/favorite-stops`
 
+## CORS
+
+Browsers only call the API from origins listed in **`CORS_ALLOWED_ORIGINS`** (comma-separated). Default: `http://localhost:5173` (Vite dev server).
+
+| Where you run the API | How to set it |
+|----------------------|---------------|
+| **Docker Compose** | Add to `.env`: `CORS_ALLOWED_ORIGINS=http://localhost:5173` then `docker compose up --build` |
+| **EC2 `docker run`** | `-e CORS_ALLOWED_ORIGINS='http://localhost:5173,https://your-site.com'` |
+| **Maven locally** | PowerShell: `$env:CORS_ALLOWED_ORIGINS='http://localhost:5173'; mvn spring-boot:run` |
+
+After changing origins you only need to **restart** the API (no new image build unless you changed Java code). Config lives in [`CorsConfig.java`](src/main/java/com/example/config/CorsConfig.java) and [`application.properties`](src/main/resources/application.properties).
+
+**Local React + cloud API:** keep `http://localhost:5173` in the list; the browser still sends that origin even when `fetch` targets your EC2 IP.
+
 ## Project layout
 
 | Piece | Role |
@@ -312,6 +326,7 @@ Then test: `curl http://localhost:8080/api/favorite-stops`
 | `MTAFetcher` | HTTP GET to the MTA JSON endpoint |
 | `BusInfoParser` | Jackson: JSON → `BusInfo` list |
 | `BusInfo` | One upcoming arrival at the stop |
+| `CorsConfig` | CORS for `/api/**`; origins from `CORS_ALLOWED_ORIGINS` |
 | `frontend/` | React (Vite) UI — dev server (`npm run dev`), build output in `frontend/dist/` |
 | `Dockerfile` | Multi-stage image for the Spring Boot API |
 | `docker-compose.yml` | Compose: Postgres + API ([Quick start](#quick-start)) |

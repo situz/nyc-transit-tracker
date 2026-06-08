@@ -16,6 +16,7 @@ services:
       - "8080:8080"
     environment:
       MTA_API_KEY: ${MTA_API_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nyc_transit}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-nyc}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-nyc}
