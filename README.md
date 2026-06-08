@@ -12,6 +12,7 @@ Queries the [MTA Bus Time](https://bustime.mta.info/) SIRI **stop-monitoring** A
 - An **MTA Bus Time API key** (obtain through MTA’s Bus Time / developer signup process)
 - **PostgreSQL** reachable at the URL you configure (defaults in `application.properties` assume `localhost:5432` and database `nyc_transit`) — only needed for **`mvn spring-boot:run`**, not for `mvn test`
 - **Node.js LTS + npm** — only if you work on the React app under [`frontend/`](frontend/)
+- **Docker** — optional, for running the API in a container ([`Dockerfile`](Dockerfile))
 
 ## Configuration
 
@@ -187,6 +188,54 @@ curl -X DELETE "http://localhost:8080/api/favorite-stops/404271"
 
 If you use the included [`docker-compose.yml`](docker-compose.yml), Postgres listens on **localhost:5432**. Credentials are provided via environment variables (or a local `.env` file). You can start from [`.env.example`](.env.example) (copy to `.env`, which is gitignored). Start Postgres with `docker compose up -d` (or `docker-compose up -d`) before `mvn spring-boot:run`.
 
+### Run the API in Docker
+
+The root [`Dockerfile`](Dockerfile) packages the **Spring Boot API** (not the React dev server). It uses a **multi-stage build**: stage 1 compiles with Maven; stage 2 runs only the JAR on a slim Java 17 runtime. [`.dockerignore`](.dockerignore) keeps `target/`, `frontend/`, and secrets out of the build context.
+
+**1. Build the image** (from repo root):
+
+```bash
+docker build -t nyc-transit-api .
+```
+
+**2. Start Postgres** (if not already running):
+
+```bash
+docker compose up -d
+```
+
+**3. Run the API container** with environment variables (never bake secrets into the image):
+
+**Windows PowerShell** — Postgres on the host via Docker Compose; `host.docker.internal` reaches your PC from inside the container:
+
+```powershell
+docker run --rm -p 8080:8080 `
+  -e MTA_API_KEY="your-mta-key" `
+  -e SPRING_DATASOURCE_URL="jdbc:postgresql://host.docker.internal:5432/nyc_transit" `
+  -e SPRING_DATASOURCE_USERNAME="nyc" `
+  -e SPRING_DATASOURCE_PASSWORD="nyc" `
+  nyc-transit-api
+```
+
+**Git Bash / macOS / Linux:**
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e MTA_API_KEY='your-mta-key' \
+  -e SPRING_DATASOURCE_URL='jdbc:postgresql://host.docker.internal:5432/nyc_transit' \
+  -e SPRING_DATASOURCE_USERNAME='nyc' \
+  -e SPRING_DATASOURCE_PASSWORD='nyc' \
+  nyc-transit-api
+```
+
+Then test: `curl http://localhost:8080/api/favorite-stops`
+
+| Where the API runs | JDBC host for Postgres |
+|--------------------|-------------------------|
+| `mvn spring-boot:run` on your PC | `localhost` |
+| API **container**, Postgres via Compose on the host | `host.docker.internal` (Docker Desktop on Windows/Mac) |
+| Both API and Postgres in Compose (future) | `postgres` (the Compose service name) |
+
 ## Project layout
 
 | Piece | Role |
@@ -203,6 +252,8 @@ If you use the included [`docker-compose.yml`](docker-compose.yml), Postgres lis
 | `BusInfoParser` | Jackson: JSON → `BusInfo` list |
 | `BusInfo` | One upcoming arrival at the stop |
 | `frontend/` | React (Vite) UI — dev server (`npm run dev`), build output in `frontend/dist/` |
+| `Dockerfile` | Multi-stage image for the Spring Boot API |
+| `.dockerignore` | Files excluded from `docker build` context |
 
 ## Limitations
 

@@ -1,0 +1,20 @@
+# Maven output (rebuilt inside the image)
+target/
+
+# Frontend is not part of the backend Docker build
+frontend/
+
+# Git and CI metadata
+.git/
+.github/
+
+# Local secrets and editor files
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+
+# Docs and misc (optional; keeps build context smaller)
+*.md
+docs/
