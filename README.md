@@ -3,16 +3,68 @@
 Queries the [MTA Bus Time](https://bustime.mta.info/) SIRI **stop-monitoring** API for a bus stop ID and shows upcoming arrivals (route, destination, vehicle location, expected arrival, stops away).
 
 - **CLI:** `App` reads a stop ID and prints to the terminal.
-- **Web API (Spring Boot):** `GET /api/stops/{stopId}/arrivals` returns the same data as JSON.
+- **Web API (Spring Boot):** JSON endpoints for arrivals and saved favorite stops.
+- **Web UI (React):** Browse favorites and load live arrivals from the API.
+
+## Quick start
+
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose), **Node.js LTS + npm**, and an [MTA Bus Time API key](https://bustime.mta.info/).
+
+1. **Clone the repo** and `cd` into the project root.
+
+2. **Configure secrets** — copy [`.env.example`](.env.example) to **`.env`** (gitignored) and set your real key:
+
+   ```env
+   MTA_API_KEY=your-mta-key-here
+   ```
+
+   Postgres defaults in `.env` (`nyc` / `nyc_transit`) match [`docker-compose.yml`](docker-compose.yml).
+
+3. **Start API + database** (repo root):
+
+   ```bash
+   docker compose up --build
+   ```
+
+   Add **`-d`** to run in the background. This starts **Postgres** (port **5432**) and the **Spring Boot API** (port **8080**). First build may take a few minutes.
+
+4. **Start the React UI** (new terminal):
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+5. **Open** [http://localhost:5173](http://localhost:5173). The UI calls the API at [http://localhost:8080](http://localhost:8080).
+
+**Quick checks**
+
+```bash
+curl http://localhost:8080/api/favorite-stops
+curl "http://localhost:8080/api/stops/404271/arrivals"
+```
+
+**Stop:** `Ctrl+C` in the Compose terminal (foreground), or `docker compose down`. Stop the Vite dev server with `Ctrl+C` in the frontend terminal.
+
+**Ports**
+
+| Service | URL |
+|---------|-----|
+| React (dev) | `http://localhost:5173` |
+| API | `http://localhost:8080` |
+| PostgreSQL (host) | `localhost:5432` |
+
+Other run modes (Maven on your PC, manual `docker run`): see [Build and run](#build-and-run) below.
 
 ## Requirements
 
 - **Java 14+** (see `java.version` in `pom.xml`)
 - **Maven 3.x**
 - An **MTA Bus Time API key** (obtain through MTA’s Bus Time / developer signup process)
-- **PostgreSQL** reachable at the URL you configure (defaults in `application.properties` assume `localhost:5432` and database `nyc_transit`) — only needed for **`mvn spring-boot:run`**, not for `mvn test`
-- **Node.js LTS + npm** — only if you work on the React app under [`frontend/`](frontend/)
-- **Docker** — optional, for running the API in a container ([`Dockerfile`](Dockerfile))
+- **PostgreSQL** — bundled via Docker Compose for the [Quick start](#quick-start); also needed for **`mvn spring-boot:run`**, not for **`mvn test`**
+- **Node.js LTS + npm** — React app under [`frontend/`](frontend/)
+- **Docker + Compose** — recommended for API + Postgres ([Quick start](#quick-start))
 
 ## Configuration
 
@@ -63,6 +115,10 @@ export SPRING_DATASOURCE_PASSWORD='nyc'
 Start PostgreSQL before the app (or use Docker / cloud Postgres). **`mvn test`** does not require Postgres: tests use an in-memory H2 database via `src/test/resources/application.properties`.
 
 ## Build and run
+
+The [Quick start](#quick-start) above is the usual path. This section covers the **CLI**, **tests**, **CI**, and **alternative** ways to run the API.
+
+### CLI
 
 From the project root:
 
@@ -185,22 +241,9 @@ curl -X POST "http://localhost:8080/api/favorite-stops" \
 curl -X DELETE "http://localhost:8080/api/favorite-stops/404271"
 ```
 
-### Start API + Postgres with Docker Compose (one command)
+### Docker Compose (details)
 
-**Recommended** if you want the API in a container without running Maven locally. [`docker-compose.yml`](docker-compose.yml) runs **both** Postgres and the Spring Boot **API** (`api` service). Compose puts them on a private network so the API connects to the database at hostname **`postgres`** (the service name), not `localhost`.
-
-1. Copy [`.env.example`](.env.example) to **`.env`** (gitignored) if you do not have one yet, and set **`MTA_API_KEY`** to your real key.
-2. From the repo root:
-
-   ```bash
-   docker compose up --build
-   ```
-
-   Add **`-d`** to run in the background. API: `http://localhost:8080`, Postgres on host port **5432**.
-
-3. React dev UI (separate terminal): `cd frontend && npm run dev` → `http://localhost:5173`.
-
-Stop: **Ctrl+C** (foreground) or `docker compose down`.
+Same steps as [Quick start](#quick-start). [`docker-compose.yml`](docker-compose.yml) runs **Postgres** and the **`api`** service; the API uses hostname **`postgres`** for JDBC inside the Compose network.
 
 | Where the API runs | JDBC host for Postgres | Why |
 |--------------------|-------------------------|-----|
@@ -271,6 +314,7 @@ Then test: `curl http://localhost:8080/api/favorite-stops`
 | `BusInfo` | One upcoming arrival at the stop |
 | `frontend/` | React (Vite) UI — dev server (`npm run dev`), build output in `frontend/dist/` |
 | `Dockerfile` | Multi-stage image for the Spring Boot API |
+| `docker-compose.yml` | Compose: Postgres + API ([Quick start](#quick-start)) |
 | `.dockerignore` | Files excluded from `docker build` context |
 
 ## Limitations
