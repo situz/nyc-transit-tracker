@@ -184,11 +184,34 @@ curl -X POST "http://localhost:8080/api/favorite-stops" \
 curl -X DELETE "http://localhost:8080/api/favorite-stops/404271"
 ```
 
-### Local PostgreSQL with Docker Compose
+### Start API + Postgres with Docker Compose (one command)
 
-If you use the included [`docker-compose.yml`](docker-compose.yml), Postgres listens on **localhost:5432**. Credentials are provided via environment variables (or a local `.env` file). You can start from [`.env.example`](.env.example) (copy to `.env`, which is gitignored). Start Postgres with `docker compose up -d` (or `docker-compose up -d`) before `mvn spring-boot:run`.
+[`docker-compose.yml`](docker-compose.yml) runs **both** Postgres and the Spring Boot **API** (`api` service). Compose puts them on a private network so the API connects to the database at hostname **`postgres`** (the service name), not `localhost`.
 
-### Run the API in Docker
+1. Copy [`.env.example`](.env.example) to **`.env`** (gitignored) if you do not have one yet, and set **`MTA_API_KEY`** to your real key.
+2. From the repo root:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   Add **`-d`** to run in the background. API: `http://localhost:8080`, Postgres on host port **5432**.
+
+3. React dev UI (separate terminal): `cd frontend && npm run dev` → `http://localhost:5173`.
+
+Stop: **Ctrl+C** (foreground) or `docker compose down`.
+
+| Where the API runs | JDBC host for Postgres | Why |
+|--------------------|-------------------------|-----|
+| `mvn spring-boot:run` on your PC | `localhost` | App and DB both on your machine. |
+| API container, Postgres via Compose on the **host** only | `host.docker.internal` | Container reaches your PC’s port 5432. |
+| **Both API and Postgres in Compose** | **`postgres`** | Compose DNS: service name = hostname on the shared network. |
+
+### Local PostgreSQL only (Compose) + API on your PC
+
+Postgres alone: `docker compose up -d postgres`, then `mvn spring-boot:run` with `SPRING_DATASOURCE_*` pointing at `localhost:5432`.
+
+### Run the API in Docker (manual `docker run`)
 
 The root [`Dockerfile`](Dockerfile) packages the **Spring Boot API** (not the React dev server). It uses a **multi-stage build**: stage 1 compiles with Maven; stage 2 runs only the JAR on a slim Java 17 runtime. [`.dockerignore`](.dockerignore) keeps `target/`, `frontend/`, and secrets out of the build context.
 
@@ -229,12 +252,6 @@ docker run --rm -p 8080:8080 \
 ```
 
 Then test: `curl http://localhost:8080/api/favorite-stops`
-
-| Where the API runs | JDBC host for Postgres |
-|--------------------|-------------------------|
-| `mvn spring-boot:run` on your PC | `localhost` |
-| API **container**, Postgres via Compose on the host | `host.docker.internal` (Docker Desktop on Windows/Mac) |
-| Both API and Postgres in Compose (future) | `postgres` (the Compose service name) |
 
 ## Project layout
 
