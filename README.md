@@ -88,13 +88,14 @@ mvn test
 
 ### Continuous integration (GitHub Actions)
 
-This repository includes a **CI workflow** that runs on every **push** and **pull request** to `main` or `master`. It checks out the code on a clean **Ubuntu** virtual machine, installs **Java** and **Maven** (with dependency caching), and runs:
+This repository includes a **CI workflow** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) that runs on every **push** and **pull request** to `main` or `master`. Two jobs run in parallel on a clean **Ubuntu** virtual machine:
 
-```bash
-mvn -B test
-```
+| Job | What it runs |
+|-----|----------------|
+| **`test`** | `mvn -B test` (Java + Maven, with dependency caching) |
+| **`build-frontend`** | `npm install` and `npm run build` in [`frontend/`](frontend/) |
 
-If tests fail, the workflow fails and GitHub shows a red **X** on the commit or PR. You do not need to install anything on GitHub’s side beyond pushing this file: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). **No MTA API key** is required for `mvn test` (tests use H2, not PostgreSQL).
+If either job fails, the workflow fails and GitHub shows a red **X** on the commit or PR. **No MTA API key** or Postgres is required for CI (`mvn test` uses in-memory H2).
 
 Locally, `mvn test` pins the test datasource via Surefire in [`pom.xml`](pom.xml) so **your** `SPRING_DATASOURCE_*` shell variables (used for real Postgres during dev) do not override in-memory H2 for tests.
 
@@ -106,15 +107,15 @@ Start the embedded server (default port **8080**):
 mvn spring-boot:run
 ```
 
-### Two-terminal workflow (Spring Boot API + React UI)
+### Two-terminal workflow (Spring Boot on your PC + React UI)
 
-This repo can be run with **two terminals** during development:
+Run the API with **Maven** on your machine (not the Compose `api` service). Start **only Postgres** from Compose so port **8080** is free for Spring Boot:
 
 - **Terminal A (backend: API on `http://localhost:8080`)**
-  1. Start Postgres (if using Docker Compose):
+  1. Start Postgres only (do **not** run the full stack here — `docker compose up` also starts the `api` service on 8080):
 
      ```bash
-     docker compose up -d
+     docker compose up -d postgres
      ```
 
   2. Set your MTA key (or use `src/main/resources/config.properties`):
@@ -186,7 +187,7 @@ curl -X DELETE "http://localhost:8080/api/favorite-stops/404271"
 
 ### Start API + Postgres with Docker Compose (one command)
 
-[`docker-compose.yml`](docker-compose.yml) runs **both** Postgres and the Spring Boot **API** (`api` service). Compose puts them on a private network so the API connects to the database at hostname **`postgres`** (the service name), not `localhost`.
+**Recommended** if you want the API in a container without running Maven locally. [`docker-compose.yml`](docker-compose.yml) runs **both** Postgres and the Spring Boot **API** (`api` service). Compose puts them on a private network so the API connects to the database at hostname **`postgres`** (the service name), not `localhost`.
 
 1. Copy [`.env.example`](.env.example) to **`.env`** (gitignored) if you do not have one yet, and set **`MTA_API_KEY`** to your real key.
 2. From the repo root:
@@ -213,7 +214,7 @@ Postgres alone: `docker compose up -d postgres`, then `mvn spring-boot:run` with
 
 ### Run the API in Docker (manual `docker run`)
 
-The root [`Dockerfile`](Dockerfile) packages the **Spring Boot API** (not the React dev server). It uses a **multi-stage build**: stage 1 compiles with Maven; stage 2 runs only the JAR on a slim Java 17 runtime. [`.dockerignore`](.dockerignore) keeps `target/`, `frontend/`, and secrets out of the build context.
+Alternative to the Compose **`api`** service above. The root [`Dockerfile`](Dockerfile) packages the **Spring Boot API** (not the React dev server). It uses a **multi-stage build**: stage 1 compiles with Maven; stage 2 runs only the JAR on a slim Java 17 runtime. [`.dockerignore`](.dockerignore) keeps `target/`, `frontend/`, and secrets out of the build context.
 
 **1. Build the image** (from repo root):
 
@@ -221,10 +222,10 @@ The root [`Dockerfile`](Dockerfile) packages the **Spring Boot API** (not the Re
 docker build -t nyc-transit-api .
 ```
 
-**2. Start Postgres** (if not already running):
+**2. Start Postgres only** (do not start the Compose `api` service — it also uses port 8080):
 
 ```bash
-docker compose up -d
+docker compose up -d postgres
 ```
 
 **3. Run the API container** with environment variables (never bake secrets into the image):
