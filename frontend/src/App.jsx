@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+
 function App() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,7 @@ function App() {
     try {
       setError("");
       setLoading(true);
-      const res = await fetch("http://localhost:8080/api/favorite-stops");
+      const res = await fetch(`${API_BASE}/api/favorite-stops`);
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`GET favorites failed (${res.status}): ${text}`);
@@ -44,7 +46,7 @@ function App() {
     const stopName = newStopName.trim();
   
     try {
-      const res = await fetch("http://localhost:8080/api/favorite-stops", {
+      const res = await fetch(`${API_BASE}/api/favorite-stops`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,7 +82,7 @@ function App() {
     if (!window.confirm(`Delete favorite stop ${stopId}?`)) return;
     setDeleteError("");
     try {
-      const res = await fetch(`http://localhost:8080/api/favorite-stops/${encodeURIComponent(stopId)}`,
+      const res = await fetch(`${API_BASE}/api/favorite-stops/${encodeURIComponent(stopId)}`,
       { method: "DELETE" }  
     );
     if (!res.ok) {
@@ -121,7 +123,7 @@ function App() {
         // Clear old arrivals so you don't see stale data while loading.
         setArrivals([]);
   
-        const res = await fetch(`http://localhost:8080/api/stops/${encodeURIComponent(selectedStopId)}/arrivals`);
+        const res = await fetch(`${API_BASE}/api/stops/${encodeURIComponent(selectedStopId)}/arrivals`);
   
         // If it's not 200, the backend returns { "error": "..." }.
         if (!res.ok) {

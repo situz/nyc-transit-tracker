@@ -311,6 +311,46 @@ After changing origins you only need to **restart** the API (no new image build 
 
 **Local React + cloud API:** keep `http://localhost:5173` in the list; the browser still sends that origin even when `fetch` targets your EC2 IP.
 
+### Test local UI against cloud API (Path A)
+
+Use this before deploying the frontend. The React dev server stays on your PC; only the **API URL** points at EC2.
+
+**Prerequisites:** EC2 API is running (`curl http://YOUR_EC2_IP:8080/api/favorite-stops` returns `200`). EC2 container has `CORS_ALLOWED_ORIGINS=http://localhost:5173`.
+
+1. **Create** `frontend/.env.local` (gitignored):
+
+   ```env
+   VITE_API_URL=http://107.21.84.223:8080
+   ```
+
+   Replace with your EC2 public IP. No trailing slash.
+
+2. **Do not** run local API on port 8080 (optional — Path A only needs EC2). Stop `docker compose` if it would conflict; not required if you are not using local API.
+
+3. **Start the UI** (new terminal):
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+4. **Open** [http://localhost:5173](http://localhost:5173).
+
+5. **Try it:**
+   - Page loads without a red error → GET favorites worked.
+   - Add a stop ID (e.g. `404271`) → POST worked.
+   - Click the stop → arrivals load (needs a valid MTA stop ID).
+
+6. **If something fails**, open browser DevTools (F12) → **Console** or **Network**:
+   - **CORS error** → EC2 missing `http://localhost:5173` in `CORS_ALLOWED_ORIGINS`; restart API container.
+   - **Failed to fetch** / timeout → EC2 stopped, security group blocks port 8080, or wrong IP in `.env.local`.
+   - **502 on arrivals** → MTA API issue, not CORS.
+
+7. **Switch back to local API:** delete `frontend/.env.local` or set `VITE_API_URL=http://localhost:8080`, then restart `npm run dev`.
+
+`App.jsx` reads `VITE_API_URL`; see [`frontend/.env.example`](frontend/.env.example).
+
 ## Project layout
 
 | Piece | Role |

@@ -1,6 +1,7 @@
 /target/
 src/main/resources/config.properties
 .env
+frontend/.env.local
 
 # Frontend (Vite / npm) — do not commit dependencies or build output
 frontend/node_modules/
