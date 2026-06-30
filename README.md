@@ -6,6 +6,24 @@ Queries the [MTA Bus Time](https://bustime.mta.info/) SIRI **stop-monitoring** A
 - **Web API (Spring Boot):** JSON endpoints for arrivals and saved favorite stops.
 - **Web UI (React):** Browse favorites and load live arrivals from the API.
 
+## Live deployment (AWS)
+
+| Service | URL |
+|---------|-----|
+| **Web UI** (S3 + CloudFront) | [https://d5ts9eehh9c5j.cloudfront.net](https://d5ts9eehh9c5j.cloudfront.net) |
+| **API** (EC2 + RDS) | [http://107.21.84.223:8080](http://107.21.84.223:8080) |
+
+**Quick checks**
+
+```bash
+curl http://107.21.84.223:8080/api/favorite-stops
+curl "http://107.21.84.223:8080/api/stops/404271/arrivals"
+```
+
+**Browser note:** The live UI is **HTTPS** (CloudFront) but the API is **HTTP** (EC2). Browsers block that combination (**mixed content**), so the CloudFront site may show “failed to fetch” until the API has HTTPS (Phase 2: ACM + ALB + domain). For a full interactive demo today, use [Path A](#test-local-ui-against-cloud-api-path-a): `npm run dev` locally with `VITE_API_URL` pointing at the EC2 API.
+
+**Stack:** React build on **S3/CloudFront**; Spring Boot API in **Docker on EC2** (image in **ECR**); favorites in **RDS PostgreSQL**.
+
 ## Quick start
 
 **Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose), **Node.js LTS + npm**, and an [MTA Bus Time API key](https://bustime.mta.info/).
@@ -304,7 +322,7 @@ Browsers only call the API from origins listed in **`CORS_ALLOWED_ORIGINS`** (co
 | Where you run the API | How to set it |
 |----------------------|---------------|
 | **Docker Compose** | Add to `.env`: `CORS_ALLOWED_ORIGINS=http://localhost:5173` then `docker compose up --build` |
-| **EC2 `docker run`** | `-e CORS_ALLOWED_ORIGINS='http://localhost:5173,https://your-site.com'` |
+| **EC2 `docker run`** | `-e CORS_ALLOWED_ORIGINS='http://localhost:5173,https://d5ts9eehh9c5j.cloudfront.net'` |
 | **Maven locally** | PowerShell: `$env:CORS_ALLOWED_ORIGINS='http://localhost:5173'; mvn spring-boot:run` |
 
 After changing origins you only need to **restart** the API (no new image build unless you changed Java code). Config lives in [`CorsConfig.java`](src/main/java/com/example/config/CorsConfig.java) and [`application.properties`](src/main/resources/application.properties).
@@ -367,7 +385,7 @@ Use this before deploying the frontend. The React dev server stays on your PC; o
 | `BusInfoParser` | Jackson: JSON → `BusInfo` list |
 | `BusInfo` | One upcoming arrival at the stop |
 | `CorsConfig` | CORS for `/api/**`; origins from `CORS_ALLOWED_ORIGINS` |
-| `frontend/` | React (Vite) UI — dev server (`npm run dev`), build output in `frontend/dist/` |
+| `frontend/` | React (Vite) UI — dev server (`npm run dev`), [`frontend/.env.production`](frontend/.env.production), build output in `frontend/dist/` |
 | `Dockerfile` | Multi-stage image for the Spring Boot API |
 | `docker-compose.yml` | Compose: Postgres + API ([Quick start](#quick-start)) |
 | `.dockerignore` | Files excluded from `docker build` context |
